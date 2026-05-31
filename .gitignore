@@ -1,0 +1,69 @@
+# -----------------------------
+# Python cache / build files
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode / PyCharm / IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Cache directories (pytest, mypy, etc.)
+.cache/
+.mypy_cache/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# Byte-compiled C extensions
+*.so
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ignore folders with large files
+
+bhv_to_csv/
+bvh_to_csv_centered/
+composite_videos/
+extracted_mocap_csv/
+data/motion_data_pkl/
+data/bvh_files/
+data/videos/
+data/cluster_data/
+
+# Ignore file types
+*.bvh
+*.mp4
+*.wav
+*.pkl
+*.mat
+
+
+

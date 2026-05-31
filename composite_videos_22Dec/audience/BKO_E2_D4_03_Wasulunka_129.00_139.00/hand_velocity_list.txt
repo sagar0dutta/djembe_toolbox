@@ -1,0 +1,8 @@
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_001_129.01_130.24.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_002_130.24_131.50.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_003_131.50_132.71.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_004_132.71_133.90.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_005_133.90_135.10.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_006_135.10_136.29.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_007_136.29_137.50.mp4'
+file 'hand_velocity/BKO_E2_D4_03_Wasulunka_window_008_137.50_138.69.mp4'

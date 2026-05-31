@@ -1,0 +1,8 @@
+file 'left_view/left_view_129.0_130.2.mp4'
+file 'left_view/left_view_130.2_131.5.mp4'
+file 'left_view/left_view_131.5_132.7.mp4'
+file 'left_view/left_view_132.7_133.9.mp4'
+file 'left_view/left_view_133.9_135.1.mp4'
+file 'left_view/left_view_135.1_136.3.mp4'
+file 'left_view/left_view_136.3_137.5.mp4'
+file 'left_view/left_view_137.5_138.7.mp4'

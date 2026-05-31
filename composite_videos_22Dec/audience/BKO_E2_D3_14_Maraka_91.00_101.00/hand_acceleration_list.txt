@@ -1,0 +1,7 @@
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_001_91.43_92.63.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_002_92.63_93.86.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_003_93.86_95.09.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_004_95.09_96.28.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_005_96.28_97.46.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_006_97.46_98.62.mp4'
+file 'hand_acceleration/BKO_E2_D3_14_Maraka_window_007_98.62_99.83.mp4'

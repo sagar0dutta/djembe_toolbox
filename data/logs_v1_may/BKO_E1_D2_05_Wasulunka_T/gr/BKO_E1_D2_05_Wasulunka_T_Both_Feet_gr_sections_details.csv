@@ -1,0 +1,2 @@
+Section_Name,Start_Timestamp,End_Timestamp,Mode,Start_sec,End_sec,Duration,Cycle_Onsets,Cycle_Periods,Total_Cycles,total_feet_onsets
+Section_1,"00:01:02,120","00:01:15,020",gr,62.12,75.02,12.9,[63.274 65.164 67.021 68.851 70.672 72.523 74.428],[1.89  1.857 1.83  1.821 1.851 1.905],6,17

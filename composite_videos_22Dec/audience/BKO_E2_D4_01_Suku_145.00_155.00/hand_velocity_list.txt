@@ -1,0 +1,6 @@
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_001_146.06_147.44.mp4'
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_002_147.44_148.84.mp4'
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_003_148.84_150.13.mp4'
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_004_150.13_151.38.mp4'
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_005_151.38_152.57.mp4'
+file 'hand_velocity/BKO_E2_D4_01_Suku_window_006_152.57_153.76.mp4'

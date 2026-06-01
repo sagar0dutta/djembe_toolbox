@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 DEFAULT_ROOT = "Hips"
 DEFAULT_LEFT_SHOULDER = "LeftShoulder"
 DEFAULT_RIGHT_SHOULDER = "RightShoulder"
-DEFAULT_FRONTAL_METHOD = "frame"
+DEFAULT_FRONTAL_METHOD = "mean"
 
 
 def marker_names_from_columns(columns):

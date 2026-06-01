@@ -131,6 +131,7 @@ class MocapVisualizerBase:
             dir_csv=self.dir_csv_centered,
             force=True,
             debug=self.debug,
+            frontal_method="frame",
         )
 
         # Load root-centered position data for skeleton / video rendering
@@ -170,7 +171,26 @@ class MocapVisualizerBase:
         self.reference_pos = self.get_marker_position('Hips', 0)
         if self.reference_pos is None:
             raise ValueError("Reference marker 'Hips' not found in the first frame")
+
+        self.display_scale = self._compute_display_scale(reference_frame=0)
     
+    def _compute_display_scale(self, reference_frame=0):
+        """Fixed scale from reference pose — avoids per-frame zoom pulsing."""
+        points = []
+        for label in self.labels:
+            pos = self.get_marker_position(label, reference_frame)
+            if pos is not None and not np.any(np.isnan(pos)):
+                points.append(pos)
+        if not points:
+            return 1.0
+        arr = np.array(points)
+        hips = self.get_marker_position('Hips', reference_frame)
+        if hips is not None:
+            arr[:, 0] -= hips[0]
+            arr[:, 2] -= hips[2]
+        max_range = np.max(np.abs(arr))
+        return max_range if max_range > 0 else 1.0
+
     def get_marker_position(self, label, frame):
         """Get the 3D position of a marker at a specific frame"""
         try:
@@ -230,15 +250,14 @@ class MocapVisualizerBase:
         if points:
             points = np.array(points)
             
-            # Center in X/Z only (keep Y for stable ground at Y=0)
-            center = np.mean(points, axis=0)
-            points[:, 0] -= center[0]
-            points[:, 2] -= center[2]
+            # Center on hips in X/Z only (Y unchanged; CSV is already hip-rooted)
+            hips = marker_positions['Hips']
+            points[:, 0] -= hips[0]
+            points[:, 2] -= hips[2]
 
-            # Scale to fit in [-1, 1] box
-            max_range = np.max(np.abs(points))
-            if max_range > 0:
-                points = points / max_range
+            # Fixed scale from reference frame (no per-frame normalize)
+            if self.display_scale > 0:
+                points = points / self.display_scale
             
             # Create the polydata with explicit cells array
             cells = []

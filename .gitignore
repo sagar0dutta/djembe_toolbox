@@ -49,7 +49,7 @@ Thumbs.db
 
 # Ignore folders with large files
 
-bhv_to_csv/
+bvh_to_csv/
 bvh_to_csv_centered/
 composite_videos/
 extracted_mocap_csv/

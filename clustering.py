@@ -161,7 +161,7 @@ def process_single_file(
     
     
     ############################### TEMPORARY ######################################
-    bvh_path = os.path.join("extracted_mocap_csv", f"{file_name}_T_worldpos.csv")
+    bvh_path = os.path.join("bvh_to_csv", f"{file_name}_T_worldpos.csv")
     
     bvh_df = pd.read_csv(bvh_path)
     bvh_frame_times = bvh_df["Time"].values  # in seconds

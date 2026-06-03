@@ -24,7 +24,7 @@ def load_cycles(cycles_csv_path):
 
 def load_dance_onsets(dance_csv_path):
     df = pd.read_csv(dance_csv_path)
-    return df["feet"].values
+    return df["time_sec"].values
 
 def find_cycle_phases(onsets, cycles):
     """Find the cycle and phase for each onset, handling circular nature of metric cycle.

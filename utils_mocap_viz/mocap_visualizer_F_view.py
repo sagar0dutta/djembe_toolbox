@@ -1,8 +1,8 @@
 from .mocap_visualizer_base import MocapVisualizerBase
 
 class MocapVisualizerFront(MocapVisualizerBase):
-    def __init__(self, bvh_file, debug=False):
-        super().__init__(bvh_file, debug)
+    def __init__(self, bvh_file, debug=False, **kwargs):
+        super().__init__(bvh_file, debug, **kwargs)
         # Front view: camera on +Z (BVH Z is forward)
         self.plotter.camera_position = [(0, 0, 3), (0, 0.5, 0), (0, 1, 0)]
         self.plotter.camera.zoom(1.1)

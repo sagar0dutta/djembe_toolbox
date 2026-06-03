@@ -3,7 +3,8 @@
 # ~/miniconda3/etc/profile.d/conda.sh
 # source ~/.bashrc
 
-MAX_JOBS=1
+MAX_JOBS=5
+# Skeleton rendering fixes allow higher parallelism; try MAX_JOBS=5 if videos look correct.
 RESUME_PENDING="${RESUME_PENDING:-1}"  # set to 0 to run all task ids 0..N-1
 
 if [[ "$RESUME_PENDING" == "1" ]]; then
@@ -24,14 +25,14 @@ if [[ "$TOTAL_JOBS" -eq 0 ]]; then
     exit 0
 fi
 
+LOG_DIR="logs/composite_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$LOG_DIR"
 echo "Running ${#TASK_IDS[@]} jobs with max $MAX_JOBS in parallel"
+echo "Per-job logs (stdout+stderr): $LOG_DIR/job_<id>.log"
 
 for i in "${TASK_IDS[@]}"; do
-    echo "Launching job $i"
-    python build_composite_video_script_slurm.py "$i" &
-
-    # python build_composite_video_script_slurm.py "$i" \
-    # > logs/composite_job_$i.out 2> logs/composite_job_$i.err &
+    echo "Launching job $i  (log: $LOG_DIR/job_$i.log)"
+    python build_composite_video_script_slurm.py "$i" > "$LOG_DIR/job_$i.log" 2>&1 &
 
     while [ "$(jobs -r | wc -l)" -ge "$MAX_JOBS" ]; do
         sleep 2
@@ -40,6 +41,8 @@ done
 
 wait
 echo "All jobs finished."
+echo "Jobs that hit errors (see logs above + each segment's .composite_status.json):"
+grep -lE "Traceback|Error" "$LOG_DIR"/job_*.log 2>/dev/null || echo "  (none detected)"
 
 # Force full rerun of a single task:
 #   python build_composite_video_script_slurm.py 5 --force

@@ -1,8 +1,8 @@
 from .mocap_visualizer_base import MocapVisualizerBase
 
 class MocapVisualizerRightSide(MocapVisualizerBase):
-    def __init__(self, bvh_file, debug=False):
-        super().__init__(bvh_file, debug)
+    def __init__(self, bvh_file, debug=False, **kwargs):
+        super().__init__(bvh_file, debug, **kwargs)
         # Right profile: camera on -X (BVH +X is stage left / dancer's left)
         self.plotter.camera_position = [(-2, 0, 0), (0, 0.5, 0), (0, 1, 0)]
         self.plotter.camera.zoom(1.0)

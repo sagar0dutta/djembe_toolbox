@@ -5,7 +5,12 @@ import pickle
 import sys
 from datetime import datetime, timezone
 
-from utils_mocap_viz.generate_views import prepare_videos
+from utils_mocap_viz.generate_views import (
+    prepare_videos,
+    create_view_visualizers,
+    close_view_visualizers,
+    is_valid_video_file,
+)
 from utils_mocap_viz.animated_merged_phase_analysis import animate_merged_phase_analysis_with_user_window
 from utils_dance_anim.dance_dot import animate_dance_phase_analysis_with_user_window
 from utils_pipeline.pipeline_B import *
@@ -14,6 +19,14 @@ from utils_composite_video.by_time_segment import *
 
 ############################ LAYOUTS #########################################
 views_to_generate = ['front']
+
+# Frontal-alignment for skeleton views (utils_mocap_viz.worldpos_transform_v2):
+#   FRONTAL_METHOD: "frame_smooth" (front-facing, de-jittered) | "frame" | "mean" | "none"
+#   FRONTAL_MARKERS: "both" (hip+shoulder) | "shoulders" | "hips"
+# Each option caches to its own CSV, so switching here rebuilds instead of reusing stale data.
+FRONTAL_METHOD = "frame_smooth"
+FRONTAL_MARKERS = "both"
+FRONTAL_SMOOTH_SEC = 0.4
 
 layout_5views = [
     {'view': 'videos', 'x': 0, 'y': 0, 'width': 960, 'height': 540},
@@ -167,10 +180,12 @@ def stage_forward_complete(file_name, traj_tuples, base_output_dir):
 def stage_per_cycle_complete(file_name, traj_tuples, base_output_dir):
     if not traj_tuples:
         return True
-    keys = ["drum", "dance", *[f"{v}_view" for v in views_to_generate]]
     for idx, (c_start, c_end, _) in enumerate(traj_tuples):
         p = cycle_artifact_paths(file_name, idx, c_start, c_end, base_output_dir)
-        if not all_paths_exist([p[k] for k in keys]):
+        if not all_paths_exist([p["drum"], p["dance"]]):
+            return False
+        view_paths = [p[f"{v}_view"] for v in views_to_generate]
+        if not all(is_valid_video_file(path) for path in view_paths):
             return False
     return True
 
@@ -247,7 +262,7 @@ def resolve_job_context(task_id):
         "bvh_file": os.path.join(bvh_dir, file_name + "_T"),
         "cycles_csv_path": cycles_csv_path,
         "onsets_csv_path": f"data/drum_onsets/{file_name}.csv",
-        "dance_csv_path": f"data/dance_onsets/{file_name}_T_dance_onsets.csv",
+        "dance_csv_path": f"data/dance_onsets_v4_0.007_foot_jun3/{file_name}_T/onset_info/{file_name}_T_both_feet_onsets.csv",
     }
 
 
@@ -378,7 +393,7 @@ def run_task(task_id, force=False, concat_only=False):
         extract_forward_cycle_videos_and_plots(
             file_name=file_name,
             windows=traj_tuples,
-            base_path_logs="data/logs_v4_0.007_foot_jun3",
+            base_path_logs="data/dance_onsets_v4_0.007_foot_jun3",
             figsize=(10, 3),
             dpi=200,
             save_dir=base_output_dir,
@@ -399,77 +414,88 @@ def run_task(task_id, force=False, concat_only=False):
     # --- Stage 2: per-cycle drum, dance, skeleton ---
     if force or not stage_per_cycle_complete(file_name, traj_tuples, base_output_dir):
         print("Stage: per-cycle drum / dance / skeleton views")
-        for cycle_idx, (c_start_time, c_end_time, _) in enumerate(traj_tuples):
-            paths = cycle_artifact_paths(
-                file_name, cycle_idx, c_start_time, c_end_time, base_output_dir
-            )
-
-            if force or not os.path.isfile(paths["drum"]):
-                animate_merged_phase_analysis_with_user_window(
-                    file_name=file_name,
-                    W_start=mode_start_time,
-                    W_end=mode_end_time,
-                    user_start=c_start_time,
-                    user_end=c_end_time,
-                    cycles_csv_path=ctx["cycles_csv_path"],
-                    onsets_csv_path=ctx["onsets_csv_path"],
-                    save_dir=output_dir3,
-                    figsize=(10, 3),
-                    dpi=200,
-                    legend_flag=False,
-                    fps=select_fps,
+        bvh_path = ctx["bvh_file"] + ".bvh"
+        view_visualizers = create_view_visualizers(
+            bvh_path, views_to_generate, debug=False,
+            frontal_method=FRONTAL_METHOD,
+            markers=FRONTAL_MARKERS,
+            smooth_sec=FRONTAL_SMOOTH_SEC,
+        )
+        try:
+            for cycle_idx, (c_start_time, c_end_time, _) in enumerate(traj_tuples):
+                paths = cycle_artifact_paths(
+                    file_name, cycle_idx, c_start_time, c_end_time, base_output_dir
                 )
-            else:
-                print(f"  Skip drum cycle {cycle_idx + 1}: exists")
 
-            if force or not os.path.isfile(paths["dance"]):
-                animate_dance_phase_analysis_with_user_window(
-                    file_name=file_name,
-                    W_start=mode_start_time,
-                    W_end=mode_end_time,
-                    user_start=c_start_time,
-                    user_end=c_end_time,
-                    cycles_csv_path=ctx["cycles_csv_path"],
-                    dance_csv_path=ctx["dance_csv_path"],
-                    save_dir=output_dir4,
-                    figsize=(10, 3),
-                    dpi=200,
-                    fps=select_fps,
-                )
-            else:
-                print(f"  Skip dance cycle {cycle_idx + 1}: exists")
-
-            view_paths = [paths[f"{v}_view"] for v in views_to_generate]
-            if force or not all_paths_exist(view_paths):
-                try:
-                    prepare_videos(
-                        filename=ctx["bvh_file"],
-                        start_time=c_start_time,
-                        end_time=c_end_time,
-                        views_to_generate=views_to_generate,
-                        video_path=None,
-                        video_size=(1280, 720),
+                if force or not os.path.isfile(paths["drum"]):
+                    animate_merged_phase_analysis_with_user_window(
+                        file_name=file_name,
+                        W_start=mode_start_time,
+                        W_end=mode_end_time,
+                        user_start=c_start_time,
+                        user_end=c_end_time,
+                        cycles_csv_path=ctx["cycles_csv_path"],
+                        onsets_csv_path=ctx["onsets_csv_path"],
+                        save_dir=output_dir3,
+                        figsize=(10, 3),
+                        dpi=200,
+                        legend_flag=False,
                         fps=select_fps,
-                        output_dir=base_output_dir,
                     )
-                except Exception as e:
-                    print(
-                        f"Error in prepare_videos for window "
-                        f"{c_start_time:.2f}-{c_end_time:.2f}: {e}"
-                    )
-                    import traceback
-                    traceback.print_exc()
-            else:
-                print(f"  Skip skeleton cycle {cycle_idx + 1}: exists")
+                else:
+                    print(f"  Skip drum cycle {cycle_idx + 1}: exists")
 
-            save_status(base_output_dir, {
-                "task_id": task_id,
-                "file_name": file_name,
-                "n_cycles": len(traj_tuples),
-                "fps": select_fps,
-                "stages": {"forward": "done", "per_cycle": "in_progress"},
-                "last_cycle_completed": cycle_idx,
-            })
+                if force or not os.path.isfile(paths["dance"]):
+                    animate_dance_phase_analysis_with_user_window(
+                        file_name=file_name,
+                        W_start=mode_start_time,
+                        W_end=mode_end_time,
+                        user_start=c_start_time,
+                        user_end=c_end_time,
+                        cycles_csv_path=ctx["cycles_csv_path"],
+                        dance_csv_path=ctx["dance_csv_path"],
+                        save_dir=output_dir4,
+                        figsize=(10, 3),
+                        dpi=200,
+                        fps=select_fps,
+                    )
+                else:
+                    print(f"  Skip dance cycle {cycle_idx + 1}: exists")
+
+                view_paths = [paths[f"{v}_view"] for v in views_to_generate]
+                if force or not all(is_valid_video_file(p) for p in view_paths):
+                    try:
+                        prepare_videos(
+                            filename=ctx["bvh_file"],
+                            start_time=c_start_time,
+                            end_time=c_end_time,
+                            views_to_generate=views_to_generate,
+                            video_path=None,
+                            video_size=(1280, 720),
+                            fps=select_fps,
+                            output_dir=base_output_dir,
+                            visualizers=view_visualizers,
+                        )
+                    except Exception as e:
+                        print(
+                            f"Error in prepare_videos for window "
+                            f"{c_start_time:.2f}-{c_end_time:.2f}: {e}"
+                        )
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print(f"  Skip skeleton cycle {cycle_idx + 1}: exists")
+
+                save_status(base_output_dir, {
+                    "task_id": task_id,
+                    "file_name": file_name,
+                    "n_cycles": len(traj_tuples),
+                    "fps": select_fps,
+                    "stages": {"forward": "done", "per_cycle": "in_progress"},
+                    "last_cycle_completed": cycle_idx,
+                })
+        finally:
+            close_view_visualizers(view_visualizers)
     else:
         print("Stage: per-cycle — already complete, skipping")
 
@@ -563,12 +589,21 @@ def main():
     task_id = int(args.task_id)
     try:
         ok = run_task(task_id, force=args.force, concat_only=args.concat_only)
-    except Exception:
-        ctx = resolve_job_context(task_id)
-        status = load_status(ctx["base_output_dir"])
-        status["complete"] = False
-        status["error"] = True
-        save_status(ctx["base_output_dir"], status)
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        try:
+            ctx = resolve_job_context(task_id)
+            status = load_status(ctx["base_output_dir"])
+            status["complete"] = False
+            status["error"] = True
+            status["error_message"] = f"{type(e).__name__}: {e}"
+            status["traceback"] = tb
+            status["failed_at"] = datetime.now(timezone.utc).isoformat()
+            save_status(ctx["base_output_dir"], status)
+        except Exception:
+            pass
+        print(tb, file=sys.stderr)
         raise
 
     if not ok:

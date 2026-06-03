@@ -411,7 +411,7 @@ def extract_forward_cycle_videos_and_plots(
     file_name: str,
     windows: list,  # List of (win_start, win_end, t_poi) tuples
     # window_key: str,
-    base_path_logs: str = "data/logs_v2_may",
+    base_path_logs: str = "data/dance_onsets_v4_0.007_foot_jun3",
     frame_rate: float = 240,  # Trajectory data frame rate
     n_beats_per_cycle: int = 4,
     n_subdiv_per_beat: int = 3,

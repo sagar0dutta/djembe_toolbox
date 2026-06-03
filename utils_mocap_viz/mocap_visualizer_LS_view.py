@@ -1,8 +1,8 @@
 from .mocap_visualizer_base import MocapVisualizerBase
 
 class MocapVisualizerLeftSide(MocapVisualizerBase):
-    def __init__(self, bvh_file, debug=False):
-        super().__init__(bvh_file, debug)
+    def __init__(self, bvh_file, debug=False, **kwargs):
+        super().__init__(bvh_file, debug, **kwargs)
         # Left profile: camera on +X
         self.plotter.camera_position = [(2, 0, 0), (0, 0.5, 0), (0, 1, 0)]
         self.plotter.camera.zoom(1.0)

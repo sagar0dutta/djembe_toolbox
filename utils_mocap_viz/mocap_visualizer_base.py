@@ -5,7 +5,13 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 from bvh_converter import bvh_mod
-from .worldpos_transform_v1 import ensure_root_centered_worldpos_csv
+from .worldpos_transform_v2 import (
+    ensure_root_centered_worldpos_csv,
+    file_lock,
+    DEFAULT_FRONTAL_METHOD,
+    DEFAULT_MARKERS,
+    DEFAULT_SMOOTH_SEC,
+)
 
 os.environ["PYVISTA_OFF_SCREEN"] = "true"
 os.environ["PYVISTA_USE_JUPYTER"] = "false"
@@ -46,8 +52,12 @@ skeleton_indices = {
 }
 
 class MocapVisualizerBase:
-    def __init__(self, bvh_file, debug=False):
+    def __init__(self, bvh_file, debug=False, frontal_method=DEFAULT_FRONTAL_METHOD,
+                 markers=DEFAULT_MARKERS, smooth_sec=DEFAULT_SMOOTH_SEC):
         self.debug = debug
+        self.frontal_method = frontal_method
+        self.markers = markers
+        self.smooth_sec = smooth_sec
         try:
             if not bvh_file.endswith('.bvh'):
                 raise ValueError("Please provide a .bvh file")
@@ -58,13 +68,13 @@ class MocapVisualizerBase:
             os.makedirs(self.dir_csv_centered, exist_ok=True)
             self.load_bvh(bvh_file)
             
-            # Create PyVista plotter with specific backend
+            # OSMesa first — more stable than EGL when several jobs render in parallel
             try:
-                self.plotter = pv.Plotter(off_screen=True, backend='egl')
-            except:
+                self.plotter = pv.Plotter(off_screen=True, backend='osmesa')
+            except Exception:
                 try:
-                    self.plotter = pv.Plotter(off_screen=True, backend='osmesa')
-                except:
+                    self.plotter = pv.Plotter(off_screen=True, backend='egl')
+                except Exception:
                     self.plotter = pv.Plotter(off_screen=True)
 
             # self.plotter._initialized = True
@@ -121,18 +131,22 @@ class MocapVisualizerBase:
         pos_csv = os.path.join(self.dir_csv, f"{base_name}_worldpos.csv")
         rot_csv = os.path.join(self.dir_csv, f"{base_name}_rotations.csv")
         
-        if not os.path.exists(pos_csv) or not os.path.exists(rot_csv):
-            if self.debug:
-                print(f"Converting BVH to CSV files...")
-            bvh_mod.convert_bvh_to_csv(bvh_file, output_dir=self.dir_csv, do_rotations=True)
+        lock_path = os.path.join(self.dir_csv, f".{base_name}.lock")
+        with file_lock(lock_path):
+            if not os.path.exists(pos_csv) or not os.path.exists(rot_csv):
+                if self.debug:
+                    print(f"Converting BVH to CSV files...")
+                bvh_mod.convert_bvh_to_csv(bvh_file, output_dir=self.dir_csv, do_rotations=True)
 
-        root_centered_csv = ensure_root_centered_worldpos_csv(
-            pos_csv,
-            dir_csv=self.dir_csv_centered,
-            force=True,
-            debug=self.debug,
-            frontal_method="frame",
-        )
+            root_centered_csv = ensure_root_centered_worldpos_csv(
+                pos_csv,
+                dir_csv=self.dir_csv_centered,
+                force=False,
+                debug=self.debug,
+                markers=self.markers,
+                frontal_method=self.frontal_method,
+                smooth_sec=self.smooth_sec,
+            )
 
         # Load root-centered position data for skeleton / video rendering
         self.positions_df = pd.read_csv(root_centered_csv)
@@ -275,8 +289,18 @@ class MocapVisualizerBase:
             print(f"Warning: No valid skeleton built for frame {frame}")
         return False
     
-    def generate_video(self, start_time=0, end_time=None, output_file="animation.mp4", output_fps=24, video_size=(1920, 1080), show_info=True):
+    def generate_video(
+        self,
+        start_time=0,
+        end_time=None,
+        output_file="animation.mp4",
+        output_fps=24,
+        video_size=(1920, 1080),
+        show_info=True,
+        close_plotter=True,
+    ):
         """Generate an MP4 video of the animation"""
+        temp_dir = None
         try:
             # Convert times to frames
             start_frame = int(start_time * self.frame_rate)
@@ -288,124 +312,97 @@ class MocapVisualizerBase:
             # Ensure valid frame range
             start_frame = max(0, min(start_frame, self.total_frames - 1))
             end_frame = max(start_frame + 1, min(end_frame, self.total_frames))
-            
-            # print(f"\nVideo generation settings:")
-            # print(f"Start time: {start_time:.2f}s (frame {start_frame})")
-            # print(f"End time: {end_time:.2f}s (frame {end_frame})")
-            # print(f"Output file: {output_file}")
-            # print(f"Output FPS: {output_fps}")
-            # print(f"Video size: {video_size[0]}x{video_size[1]}")
-            
-            
-            # Create temporary directory for frames
-            timestamp = time.time_ns()
-            temp_dir = f"temp_frames_{timestamp}"
+
+            frame_step = max(1, int(self.frame_rate / output_fps))
+            expected_frames = len(range(start_frame, end_frame, frame_step))
+
+            temp_dir = os.path.join(
+                "/tmp", f"temp_frames_{os.getpid()}_{time.time_ns()}"
+            )
             os.makedirs(temp_dir, exist_ok=True)
-            
-            # Initialize the first frame
-            if self.build_skeleton(start_frame):
-                
-                # print("\nSkeleton Information:")
-                # print("Number of points:", len(self.skeleton.points))   
-                # print("\nConnection Information:")
-                # print("Number of lines:", len(self.skeleton.lines))
 
-                # print("\nActual points in skeleton:")
-                # for i, point in enumerate(self.skeleton.points):
-                #     print(f"Index {i}: {point}")
-                    
-                # Add skeleton lines first (black)
-                self.plotter.add_mesh(self.skeleton, color='black', line_width=5, render_lines_as_tubes=True)
-                # Then add marker points (red)
-                self.plotter.add_points(self.skeleton.points, color='red', point_size=15)
-                
-                # Add frame number and time if show_info is True
+            self.plotter.clear_actors()
+            frame_count = 0
+            failed_frames = []
+
+            for frame in range(start_frame, end_frame, frame_step):
+                if not self.build_skeleton(frame):
+                    failed_frames.append(frame)
+                    continue
+
+                self.plotter.clear_actors()
+                self.plotter.add_mesh(
+                    self.skeleton, color='black', line_width=5, render_lines_as_tubes=True
+                )
+                self.plotter.add_points(self.skeleton.points, color='black', point_size=12)
+
+                li = skeleton_indices['LeftAnkle']
+                lj = skeleton_indices['LeftToe']
+                ri = skeleton_indices['RightAnkle']
+                rj = skeleton_indices['RightToe']
+
+                if li < len(self.skeleton.points) and lj < len(self.skeleton.points):
+                    left_line = pv.Line(self.skeleton.points[li], self.skeleton.points[lj])
+                    self.plotter.add_mesh(
+                        left_line, color='blue', line_width=5, render_lines_as_tubes=True
+                    )
+
+                if ri < len(self.skeleton.points) and rj < len(self.skeleton.points):
+                    right_line = pv.Line(self.skeleton.points[ri], self.skeleton.points[rj])
+                    self.plotter.add_mesh(
+                        right_line, color='red', line_width=5, render_lines_as_tubes=True
+                    )
+
                 if show_info:
-                    self.plotter.add_text(f'Time: {start_time:.0f}s', position='upper_left')
-                    # self.plotter.add_text(f'Frame: {start_frame}/{self.total_frames}\nTime: {start_time:.2f}s\nFps: {output_fps:.1f}', position='upper_left')
-                
-                # self.plotter.show(auto_close=False, interactive=False)  # 8 Nov 2025
-                
-                # Calculate frame step based on input and output FPS
-                frame_step = max(1, int(self.frame_rate / output_fps)) # 12 dec 2025
-                
-                # Save frames
-                frame_count = 0
-                for frame in range(start_frame, end_frame, frame_step):  # 12 dec 2025
-                # for frame in frame_indices:
-                    if self.build_skeleton(frame):
-                        # self.plotter.clear()      # 8 Nov 2025
-                        self.plotter.clear_actors() # 8 Nov 2025
-                        
-                        self.plotter.add_mesh(self.skeleton, color='black', line_width=5, render_lines_as_tubes=True)
-                        self.plotter.add_points(self.skeleton.points, color='black', point_size=12)
-                        
-                        # ---------------------------------------- Segment Coloring ----------------------------------------
-                        
-                        # Color foot segments: LeftAnkle->LeftToe and RightAnkle->RightToe
-                        li = skeleton_indices['LeftAnkle']
-                        lj = skeleton_indices['LeftToe']
-                        ri = skeleton_indices['RightAnkle']
-                        rj = skeleton_indices['RightToe']
+                    current_time = frame / self.frame_rate
+                    self.plotter.add_text(
+                        f'Time: {current_time:.0f}s', position='upper_left'
+                    )
 
-                        # Guard against index mismatch in case skeleton points are fewer
-                        if li < len(self.skeleton.points) and lj < len(self.skeleton.points):
-                            left_line = pv.Line(self.skeleton.points[li], self.skeleton.points[lj])
-                            self.plotter.add_mesh(left_line, color='blue', line_width=5, render_lines_as_tubes=True)
+                frame_path = os.path.join(temp_dir, f"frame_{frame_count:06d}.png")
+                self.plotter.screenshot(frame_path, window_size=video_size)
+                frame_count += 1
+                print(
+                    f"Saved frame {frame_count}/{expected_frames}",
+                    end='\r',
+                )
 
-                        if ri < len(self.skeleton.points) and rj < len(self.skeleton.points):
-                            right_line = pv.Line(self.skeleton.points[ri], self.skeleton.points[rj])
-                            self.plotter.add_mesh(right_line, color='red', line_width=5, render_lines_as_tubes=True)
-                        
-                        
-                        
-                        # ---------------------------------------- Skeleton Marker Coloring ----------------------------------------
-                        
-                        # Define marker colors and sizes
-                        # marker_colors = {
-                        #     'Hips': ('green', 25),
-                        #     'LeftAnkle': ('blue', 25),
-                        #     # 'LeftToe': ('blue', 25),
-                        #     'RightAnkle': ('red', 25),
-                        #     # 'RightToe': ('red', 25)
-                        # }
-                        
-                        # # Add colored markers using both dictionaries
-                        # for marker, (color, size) in marker_colors.items():
-                        #     self.plotter.add_points(self.skeleton.points[skeleton_indices[marker]:skeleton_indices[marker]+1], 
-                        #                         color=color, 
-                        #                         point_size=size,
-                        #                         )
-                        # ---------------------------------------- Skeleton Marker Coloring ----------------------------------------
-                        
-                        # Update frame number and time if show_info is True
-                        if show_info:
-                            current_time = frame / self.frame_rate
-                            self.plotter.add_text(f'Time: {current_time:.0f}s', position='upper_left')
-                            # self.plotter.add_text(f'Frame: {frame}/{self.total_frames}\nTime: {current_time:.2f}s', position='upper_left')
-                        
-                        # Save frame to temporary directory with specified size
-                        frame_path = os.path.join(temp_dir, f"frame_{frame_count:06d}.png")
-                        self.plotter.screenshot(frame_path, window_size=video_size)
-                        frame_count += 1
-                        print(f"Saved frame {frame_count}/{((end_frame - start_frame) // frame_step)}", end='\r')  # 12 dec 2025
-                        # print(f"Saved frame {frame_count}/{num_frames_needed}", end='\r')
-                
-                print("\nConverting frames to video...")
-                
-                # Use ffmpeg to create video from frames with specified size
-                ffmpeg_cmd = f'{FFMPEG_PATH} -y -framerate {output_fps} -i {temp_dir}/frame_%06d.png -c:v libx264 -pix_fmt yuv420p -s {video_size[0]}x{video_size[1]} {output_file}'
-                os.system(ffmpeg_cmd)
-                
-                # Clean up temporary files
+            print()
+            if failed_frames and self.debug:
+                print(
+                    f"Warning: build_skeleton failed for {len(failed_frames)} frames "
+                    f"(first few: {failed_frames[:5]})"
+                )
+
+            if frame_count == 0:
+                raise RuntimeError(
+                    f"No frames rendered for {output_file} "
+                    f"(window {start_time:.2f}-{end_time:.2f}s)"
+                )
+            if frame_count < expected_frames:
+                raise RuntimeError(
+                    f"Incomplete skeleton video {output_file}: "
+                    f"expected {expected_frames} frames, got {frame_count}"
+                )
+
+            print("Converting frames to video...")
+            ffmpeg_cmd = (
+                f'{FFMPEG_PATH} -y -framerate {output_fps} '
+                f'-i {temp_dir}/frame_%06d.png -c:v libx264 -pix_fmt yuv420p '
+                f'-s {video_size[0]}x{video_size[1]} {output_file}'
+            )
+            ret = os.system(ffmpeg_cmd)
+            if ret != 0:
+                raise RuntimeError(f"ffmpeg failed (exit {ret}) for {output_file}")
+
+            print(f"Video generation complete! Saved to {output_file}")
+        except Exception as e:
+            print(f"Error during video generation: {str(e)}")
+            raise
+        finally:
+            if temp_dir and os.path.isdir(temp_dir):
                 for file in os.listdir(temp_dir):
                     os.remove(os.path.join(temp_dir, file))
                 os.rmdir(temp_dir)
-                
-                print(f"Video generation complete! Saved to {output_file}")
+            if close_plotter and getattr(self, "plotter", None) is not None:
                 self.plotter.close()
-        except Exception as e:
-            print(f"Error during video generation: {str(e)}")
-            self.plotter.close()
-            sys.exit(1) 
-            

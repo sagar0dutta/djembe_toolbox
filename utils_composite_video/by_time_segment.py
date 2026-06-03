@@ -939,11 +939,11 @@ def extract_hand_distance_cycle_plots(
         output_dir = os.path.join("cycle_plots", file_name, "hand_distance")
         os.makedirs(output_dir, exist_ok=True)
     
-    bvh_to_mvnx = {
-        'X': 'Y',  # BVH side → MVNX side
-        'Y': 'Z',  # BVH vertical → MVNX vertical
-        'Z': 'X',  # BVH forward → MVNX forward
-    }
+    # bvh_to_mvnx = {
+    #     'X': 'Y',  # BVH side → MVNX side
+    #     'Y': 'Z',  # BVH vertical → MVNX vertical
+    #     'Z': 'X',  # BVH forward → MVNX forward
+    # }
     
     # Load joint position data for both wrists
     base_name = os.path.splitext(os.path.basename(file_name))[0]

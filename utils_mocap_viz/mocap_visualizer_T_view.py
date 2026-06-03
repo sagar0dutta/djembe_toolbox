@@ -1,8 +1,8 @@
 from .mocap_visualizer_base import MocapVisualizerBase
 
 class MocapVisualizerTop(MocapVisualizerBase):
-    def __init__(self, bvh_file, debug=False):
-        super().__init__(bvh_file, debug)
+    def __init__(self, bvh_file, debug=False, **kwargs):
+        super().__init__(bvh_file, debug, **kwargs)
         # Set up fixed camera position for top view
         self.plotter.camera_position = [(0, 3, 0), (0, 0, 0), (0, 0, 1)]
         self.plotter.camera.zoom(0.5)

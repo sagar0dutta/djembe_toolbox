@@ -143,7 +143,18 @@ def kde_estimate(data, SIG=0.01):
     
     return xx, h
 
-def plot_results(phases, window_positions, kde_xx, kde_h, file_name, onset_type, W_start=None, W_end=None, save_path=None, figsize=(12, 8), dpi=100, use_window=True):
+def plot_results(phases, 
+                 window_positions, 
+                 kde_xx, kde_h, 
+                 file_name, 
+                 onset_type, 
+                 W_start=None, 
+                 W_end=None, 
+                 save_path=None, 
+                 figsize=(12, 8), 
+                 dpi=100, 
+                 use_window=True
+                 ):
     """Create a single plot with scatter above zero and KDE below zero, sharing x-axis.
     
     Args:
@@ -199,14 +210,34 @@ def plot_results(phases, window_positions, kde_xx, kde_h, file_name, onset_type,
     ax.set_yticks(yticks)
     
     plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path)
-        plt.close(fig)
-    else:
-        plt.show()
 
-def analyze_phases(cycles_csv_path, onsets_csv_path, onset_type, W_start=None, W_end=None, save_path=None, SIG=0.01, figsize=(12, 8), dpi=100, use_window=True):
+        
+    # save 
+    if use_window:
+        save_name = f"{file_name}_{onset_type}_{W_start:.1f}_{W_end:.1f}"
+        output_path = os.path.join(save_path, "drum_plots", "separate_plots", file_name)
+        os.makedirs(output_path, exist_ok=True)
+    else:
+        save_name = f"{file_name}_{onset_type}_full_recording"
+        output_path = os.path.join(save_path, "drum_plots", "separate_plots" , file_name)
+        os.makedirs(output_path, exist_ok=True)
+
+    save_path_final = os.path.join(output_path, f"{save_name}.png")
+    fig.savefig(save_path_final, bbox_inches='tight', dpi=300)    
+        
+        
+
+def analyze_phases(cycles_csv_path, 
+                   onsets_csv_path, 
+                   onset_type, 
+                   W_start=None, 
+                   W_end=None, 
+                   save_dir= "output_static_plot", 
+                   SIG=0.01, 
+                   figsize=(12, 8), 
+                   dpi=100, 
+                   use_window=True  # use_window=True --- Time window, use_window=False --- Full duration
+                   ):
     """Main function to perform phase analysis.
     
     Args:
@@ -265,7 +296,7 @@ def analyze_phases(cycles_csv_path, onsets_csv_path, onset_type, W_start=None, W
     
     # Step 4: Plot results
     file_name = os.path.basename(cycles_csv_path).replace('_C.csv', '')
-    plot_results(phases, window_positions, kde_xx, kde_h, file_name, onset_type, W_start, W_end, save_path, figsize, dpi, use_window)
+    plot_results(phases, window_positions, kde_xx, kde_h, file_name, onset_type, W_start, W_end, save_dir, figsize, dpi, use_window)
     
     return phases, window_positions, kde_xx, kde_h
 

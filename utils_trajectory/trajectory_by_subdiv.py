@@ -14,7 +14,8 @@ def plot_trajectories_by_subdiv(
     mode: str,
     subdiv_set: list,  # e.g. [2,5,8,11] or [3,6,9,12]
     base_path_cycles: str = "data/virtual_cycles",
-    base_path_logs: str = "data/logs_v2_may",
+    base_path_logs: str = "data/dance_onsets_v4_0.007_foot_jun3",
+    output_dir: str = "output_trajectory_plot",
     frame_rate: float = 240,
     time_segments: list = None,  # List of (start, end) tuples
     n_beats_per_cycle: int = 4,
@@ -292,11 +293,19 @@ def plot_trajectories_by_subdiv(
     
     plt.suptitle(
         f"Foot Trajectories ±{nn/n_subdiv_per_beat:.2f} beats around subdivisions {subdiv_set}\n"
-        f"{file_name} | segments: all | {mode}",
+        f"{file_name} | segments: all | {mode} | {time_segments[0][0]:.1f} - {time_segments[0][1]:.1f}",
         fontsize=10
     )
     
     plt.subplots_adjust(top=0.85)
     fig.set_constrained_layout(True)
+    
+    #save figure
+    save_dir = os.path.join(output_dir, "subdivision_wise_plots", file_name)
+    os.makedirs(save_dir, exist_ok=True)
+    
+    save_path = os.path.join(save_dir, f"{file_name}_{time_segments[0][0]:.1f}_{time_segments[0][1]:.1f}_subdivision.png")
+    fig.savefig(save_path, bbox_inches='tight', dpi=dpi)
+    plt.close(fig)
 
     return fig, axes

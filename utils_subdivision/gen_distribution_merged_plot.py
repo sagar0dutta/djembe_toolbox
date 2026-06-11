@@ -140,7 +140,15 @@ def plot_merged(file_name, cycles_csv_path, onsets_csv_path, W_start=None, W_end
     return fig, ax
 
 
-def plot_merged_stacked(file_name, cycles_csv_path, onsets_csv_path, W_start=None, W_end=None, figsize=(10, 12), dpi=100, use_window=True):
+def plot_merged_stacked(file_name, 
+                        cycles_csv_path, 
+                        onsets_csv_path, 
+                        output_dir = "output_static_plot",
+                        W_start=None, 
+                        W_end=None, 
+                        figsize=(10, 12), 
+                        dpi=100, 
+                        use_window=False):
     """Create a single plot showing merged analysis for Dun, J1, and J2 with stacked scatter plots.
     
     Args:
@@ -224,6 +232,20 @@ def plot_merged_stacked(file_name, cycles_csv_path, onsets_csv_path, W_start=Non
         ax.set_title(f'File: {file_name} | Window: {W_start:.1f}s - {W_end:.1f}s')
     else:
         ax.set_title(f'File: {file_name} | Full Recording')
+    
+    
+    # save 
+    if use_window:
+        save_name = f"{file_name}_{onset_type}_{W_start:.1f}_{W_end:.1f}"
+        output_path = os.path.join(output_dir, "drum_plots", "merged_plot", file_name)
+        os.makedirs(output_path, exist_ok=True)
+    else:
+        save_name = f"{file_name}_{onset_type}_full_recording"
+        output_path = os.path.join(output_dir, "drum_plots", "merged_subplot", file_name)
+        os.makedirs(output_path, exist_ok=True)
+
+    save_path_final = os.path.join(output_path, f"{save_name}.png")
+    fig.savefig(save_path_final, bbox_inches='tight', dpi=300)  
     
     # Add legend inside the plot
     # ax.legend(loc='upper right', framealpha=0.7, fontsize='xx-small')

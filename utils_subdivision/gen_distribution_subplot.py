@@ -61,7 +61,16 @@ def analyze_single_type(cycles_csv_path, onsets_csv_path, onset_type, W_start=No
     
     return phases, window_positions, kde_xx, kde_h
 
-def plot_combined(file_name, cycles_csv_path, onsets_csv_path, W_start=None, W_end=None, figsize=(10, 8), dpi=100, use_window=True):
+def plot_combined(file_name, 
+                  cycles_csv_path, 
+                  onsets_csv_path, 
+                  output_dir: str = "output_static_plot",
+                  W_start=None, 
+                  W_end=None, 
+                  figsize=(10, 8), 
+                  dpi=100, 
+                  use_window=True
+                  ):
     """Create a combined plot showing phase analysis for Dun, J1, and J2.
     
     Args:
@@ -114,24 +123,19 @@ def plot_combined(file_name, cycles_csv_path, onsets_csv_path, W_start=None, W_e
         fig.suptitle(f'File: {file_name} | Full Recording')
     
     plt.tight_layout()
-    return fig, axes
+    
+    # save 
+    if use_window:
+        save_name = f"{file_name}_{onset_type}_{W_start:.1f}_{W_end:.1f}"
+        output_path = os.path.join(output_dir, "drum_plots", "combined_subplot", file_name)
+        os.makedirs(output_path, exist_ok=True)
+    else:
+        save_name = f"{file_name}_{onset_type}_full_recording"
+        output_path = os.path.join(output_dir, "drum_plots", "combined_subplot", file_name)
+        os.makedirs(output_path, exist_ok=True)
 
-if __name__ == "__main__":
-    # Example usage
-    file_name = "BKO_E1_D1_02_Maraka"
-    W_start = 50
-    W_end = 180
+    save_path_final = os.path.join(output_path, f"{save_name}.png")
+    fig.savefig(save_path_final, bbox_inches='tight', dpi=300)  
     
-    # Set figure size and DPI
-    figsize = (10, 9)  # Taller to accommodate three plots
-    dpi = 100
     
-    # Create save directory if it doesn't exist
-    save_dir = "phase_analysis_plots"
-    os.makedirs(save_dir, exist_ok=True)
-    
-    # Generate and save the plot
-    fig, _ = plot_combined(file_name, W_start, W_end, figsize=figsize, dpi=dpi)
-    save_path = os.path.join(save_dir, f"{file_name}_{W_start}_{W_end}__combined_phase_analysis.png")
-    fig.savefig(save_path, bbox_inches='tight', dpi=dpi)
-    plt.close(fig)  # Close the figure to free memory 
+    return fig, axes

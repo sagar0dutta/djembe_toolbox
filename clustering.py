@@ -41,6 +41,10 @@ def initialize_cluster_data(body_part_names):
         "day": [],                 # string
         "rec_no": [],              # string
         "piece": [],               # string
+        "hand_clap_onsets": [],    # np.ndarray: hand clap onset times within cycle (seconds)
+        "both_feet_onsets": [],    # np.ndarray: both feet onset times within cycle (seconds)
+        "left_foot_onsets": [],    # np.ndarray: left foot onset times within cycle (seconds)
+        "right_foot_onsets": [],   # np.ndarray: right foot onset times within cycle (seconds)
         
         # === BODY PARTS DATA ===
         "body_parts": {}
@@ -229,6 +233,51 @@ def process_single_file(
     except Exception as e:
         print(f"[ERROR] Failed to load cycles CSV for {file_name}: {e}")
         return None
+
+    # Load hand/feet onset files once per recording. Missing files produce empty
+    # arrays so trajectory extraction is never skipped because of onset metadata.
+    def _load_onsets(path, col):
+        try:
+            return pd.read_csv(path)[col].dropna().values.astype(float)
+        except Exception:
+            if debug:
+                print(f"[DEBUG] Onset file not found or unreadable: {path}")
+            return np.array([], dtype=float)
+
+    hand_clap_onsets = _load_onsets(
+        os.path.join(
+            "data",
+            "hand_clap_onsets_05jun2026",
+            f"{file_name}_hand_clap_onsets.csv",
+        ),
+        "contact_times",
+    )
+    foot_onset_dir = os.path.join(
+        "data",
+        "dance_onsets_v4_0.007_foot_jun3",
+        f"{file_name}_T",
+        "onset_info",
+    )
+    both_feet_onsets = _load_onsets(
+        os.path.join(foot_onset_dir, f"{file_name}_T_both_feet_onsets.csv"),
+        "time_sec",
+    )
+    left_foot_onsets = _load_onsets(
+        os.path.join(foot_onset_dir, f"{file_name}_T_left_foot_onsets.csv"),
+        "time_sec",
+    )
+    right_foot_onsets = _load_onsets(
+        os.path.join(foot_onset_dir, f"{file_name}_T_right_foot_onsets.csv"),
+        "time_sec",
+    )
+
+    if debug:
+        print(
+            f"[DEBUG] Onsets loaded — hand_clap: {len(hand_clap_onsets)}, "
+            f"both_feet: {len(both_feet_onsets)}, "
+            f"left_foot: {len(left_foot_onsets)}, "
+            f"right_foot: {len(right_foot_onsets)}"
+        )
     
     # Get time arrays for all body parts (they should all have same length)
     first_part = body_part_names[0]
@@ -350,8 +399,28 @@ def process_single_file(
                     hip_part_win = bvh_hip_joint[hip_part][win_mask]  # (n_frames,)
                     file_data["body_parts"][hip_part]["position"].append(hip_part_win)
                 
-                
-                
+                # === PROCESS ONSETS ===
+                file_data["hand_clap_onsets"].append(
+                    hand_clap_onsets[
+                        (hand_clap_onsets >= c_start) & (hand_clap_onsets <= c_end)
+                    ]
+                )
+                file_data["both_feet_onsets"].append(
+                    both_feet_onsets[
+                        (both_feet_onsets >= c_start) & (both_feet_onsets <= c_end)
+                    ]
+                )
+                file_data["left_foot_onsets"].append(
+                    left_foot_onsets[
+                        (left_foot_onsets >= c_start) & (left_foot_onsets <= c_end)
+                    ]
+                )
+                file_data["right_foot_onsets"].append(
+                    right_foot_onsets[
+                        (right_foot_onsets >= c_start) & (right_foot_onsets <= c_end)
+                    ]
+                )
+
                 # === STORE METADATA ===
                 file_data["file_name"].append(file_name)
                 file_data["dmode_name"].append(dance_mode)
@@ -447,8 +516,10 @@ def process_all_files(
         # Merge file_data into cluster_data
         # Metadata
         for key in ["file_name", "dmode_name", "dmode_seg_idx", "dmode_start", "dmode_end",
-                   "cycle_idx", "cycle_start", "cycle_end", "location", "ensemble", 
-                   "day", "rec_no", "piece"]:
+                   "cycle_idx", "cycle_start", "cycle_end", "cycle_frame_times",
+                   "location", "ensemble", "day", "rec_no", "piece",
+                   "hand_clap_onsets", "both_feet_onsets",
+                   "left_foot_onsets", "right_foot_onsets"]:
             cluster_data[key].extend(file_data[key])
         
         # Body parts

@@ -49,7 +49,7 @@ def open_csv(filename, mode='r'):
 #         print("Rotations Output file: {}".format(file_out))
 
 
-def convert_bvh_to_csv(file_in, output_dir = "bvh_to_csv", do_rotations=False):
+def convert_bvh_to_csv(file_in, output_dir = "bvh_to_csv", do_rotations=True):
     """
     Convert a BVH file to CSV files of world positions and optionally rotations, writing outputs to the specified directory.
 

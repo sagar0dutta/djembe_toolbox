@@ -11,7 +11,8 @@ def plot_trajectories_by_beat(
     file_name: str,
     mode: str,
     base_path_cycles: str = "data/virtual_cycles",
-    base_path_logs: str = "data/logs_v2_may",
+    base_path_logs: str = "data/dance_onsets_v4_0.007_foot_jun3",
+    output_dir: str = "output_trajectory_plot",
     frame_rate: float = 240,
     time_segments: list = None,  # List of (start, end) tuples
     n_beats_per_cycle: int = 4,
@@ -42,6 +43,7 @@ def plot_trajectories_by_beat(
     # Use default window if no segments provided
     if time_segments is None:
         time_segments = [(0, 10)]
+        print("No time segments provided, using default window (0, 10)")
 
     # build file paths
     cycles_csv = os.path.join(base_path_cycles, f"{file_name}_C.csv")
@@ -359,11 +361,19 @@ def plot_trajectories_by_beat(
     
     plt.suptitle(
         f"Foot Trajectories ±{nn/n_subdiv_per_beat:.2f} beats around each beat\n"
-        f"{file_name} | segments: all | {mode}",
+        f"{file_name} | segments: all | {mode} | {time_segments[0][0]:.1f} - {time_segments[0][1]:.1f}",
         fontsize=10
     )
     
     plt.subplots_adjust(top=0.85)
     fig.set_constrained_layout(True)
+    
+    #save figure
+    save_dir = os.path.join(output_dir, "beatwise_plots", file_name)
+    os.makedirs(save_dir, exist_ok=True)
+    
+    save_path = os.path.join(save_dir, f"{file_name}_{time_segments[0][0]:.1f}_{time_segments[0][1]:.1f}_beatwise.png")
+    fig.savefig(save_path, bbox_inches='tight', dpi=dpi)
+    plt.close(fig)
 
     return fig, axes

@@ -67,6 +67,7 @@ METADATA_KEYS = [
     "file_name", "dmode_name", "dmode_seg_idx", "dmode_start", "dmode_end",
     "cycle_idx", "cycle_start", "cycle_end",
     "location", "ensemble", "day", "rec_no", "piece",
+    "hand_clap_onsets", "both_feet_onsets", "left_foot_onsets", "right_foot_onsets",
 ]
 
 
@@ -292,7 +293,7 @@ def save_cluster_7x3x2(
     """Save the builder output. File stem: ``cluster_7x3x2[_tag]_<today>``."""
     if today is None:
         today = datetime.now().strftime("%d%b").lower()
-    stem = "cluster_7x3x2"
+    stem = "cluster_7x3x2_mvnx"
     if tag:
         stem = f"{stem}_{tag}"
     stem = f"{stem}_{today}"

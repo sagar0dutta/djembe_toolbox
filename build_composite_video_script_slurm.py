@@ -65,26 +65,6 @@ REQUIRED_FOLDERS = [
     *[f'{view}_view' for view in views_to_generate],
 ]
 
-piece_list = ['BKO_E1_D1_01_Suku','BKO_E1_D1_01_Suku','BKO_E1_D1_01_Suku','BKO_E1_D1_01_Suku','BKO_E1_D1_02_Maraka','BKO_E1_D1_02_Maraka','BKO_E1_D1_02_Maraka','BKO_E1_D1_02_Maraka','BKO_E1_D1_03_Wasulunka','BKO_E1_D1_06_Manjanin','BKO_E1_D2_03_Suku','BKO_E1_D2_05_Wasulunka','BKO_E2_D3_01_Maraka','BKO_E2_D3_01_Maraka','BKO_E2_D3_01_Maraka','BKO_E2_D3_01_Maraka','BKO_E2_D3_01_Maraka','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_02_Suku','BKO_E2_D3_03_Wasulunka','BKO_E2_D3_03_Wasulunka','BKO_E2_D3_06_Manjanin','BKO_E2_D3_06_Manjanin','BKO_E2_D3_06_Manjanin','BKO_E2_D3_06_Manjanin','BKO_E2_D3_14_Maraka','BKO_E2_D3_14_Maraka','BKO_E2_D4_01_Suku','BKO_E2_D4_01_Suku','BKO_E2_D4_01_Suku','BKO_E2_D4_01_Suku','BKO_E2_D4_02_Maraka','BKO_E2_D4_02_Maraka','BKO_E2_D4_03_Wasulunka','BKO_E2_D4_03_Wasulunka','BKO_E2_D4_03_Wasulunka','BKO_E2_D4_06_Manjanin','BKO_E2_D4_06_Manjanin','BKO_E2_D4_06_Manjanin','BKO_E2_D4_06_Manjanin','BKO_E2_D4_06_Manjanin','BKO_E2_D4_12_Suku','BKO_E2_D4_12_Suku','BKO_E2_D4_12_Suku','BKO_E2_D4_12_Suku','BKO_E3_D5_01_Maraka','BKO_E3_D5_02_Suku','BKO_E3_D5_02_Suku','BKO_E3_D5_03_Wasulunka','BKO_E3_D5_03_Wasulunka','BKO_E3_D5_03_Wasulunka','BKO_E3_D5_06_Manjanin','BKO_E3_D5_06_Manjanin','BKO_E3_D5_06_Manjanin','BKO_E3_D5_06_Manjanin','BKO_E3_D5_13_Suku','BKO_E3_D5_13_Suku','BKO_E3_D6_01_Maraka','BKO_E3_D6_01_Maraka','BKO_E3_D6_01_Maraka','BKO_E3_D6_02_Suku','BKO_E3_D6_02_Suku','BKO_E3_D6_02_Suku','BKO_E3_D6_06_Manjanin','BKO_E3_D6_12_Suku','BKO_E3_D6_12_Suku']
-time_segments = [ (92.085,116.46), (112.76,143.14), (178.1,198.288), (195.16,221.579), (65.2,137.78), (137.78,156.18), (155.46,168.58), (205.9,268.06), (241.9,288.16), (146.28,186.74), (113.4,153.54), (78.8,123.42), (81.8,92.32), (123.16,145.3), (160.1,169.74), (223.28,236.52), (224.22,238.44), (116.28,130.52), (171.86,186.96), (185.74,214.44), (187.74,216.36), (233.12,250.68), (233.74,250.84), (250.46,265.58), (167.2,185.48), (167.22,185.44), (86.34,101.24), (99.46,118.86), (178.42,191.32), (192.36,246.76), (73.42,93.74), (91.38,101.46), (145.1,155.46), (158.0,172.88), (206.98,230.38), (232.42,250.64), (94.9,106.88), (121.42,133.84), (88.94,103.68), (129.62,139.0), (160.54,185.76), (99.36,116.24), (137.06,150.9), (148.08,164.52), (169.82,191.06), (169.84,185.66), (72.34,84.3), (72.62,85.92), (85.42,98.32), (115.16,137.04), (70.98,93.5), (68.02,86.42), (193.74,210.76), (128.24,148.1), (149.16,195.1), (171.18,186.28), (125.64,182.0), (211.26,261.12), (259.58,280.0), (279.0,316.58), (71.92,91.72), (120.88,162.72), (51.42,70.02), (69.7,101.7), (123.1,152.0), (70.78,90.34), (90.34,114.86), (181.28,200.06), (286.56,307.74), (159.46,179.44), (249.24,271.08) ]
-
-skip_pieces = [
-    ("BKO_E2_D3_02_Suku", (185.74, 214.44)),
-    ("BKO_E2_D3_02_Suku", (187.74, 216.36)),
-    ("BKO_E2_D3_02_Suku", (233.12, 250.68)),
-    ("BKO_E2_D3_02_Suku", (233.74, 250.84)),
-    ("BKO_E2_D3_03_Wasulunka", (167.20, 185.48)),
-    ("BKO_E2_D3_03_Wasulunka", (167.22, 185.44)),
-    ("BKO_E2_D4_06_Manjanin", (169.82, 191.06)),
-    ("BKO_E2_D4_06_Manjanin", (169.84, 185.66)),
-    ("BKO_E2_D4_12_Suku", (72.34, 84.30)),
-    ("BKO_E2_D4_12_Suku", (72.62, 85.92)),
-    ("BKO_E2_D4_12_Suku", (115.16, 137.04)),
-    ("BKO_E3_D6_12_Suku", (159.46, 179.44)),
-    ("BKO_E3_D6_12_Suku", (249.24, 271.08)),
-]
-
-
 def build_job_list():
     """One job per (piece, dance-mode segment index)."""
     with open('data/selected_piece_list.pkl', 'rb') as f:

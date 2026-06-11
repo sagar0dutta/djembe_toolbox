@@ -324,6 +324,7 @@ def plot_trajectories_downbeat_window(
     mode: str,
     base_path_cycles: str = "data/virtual_cycles",
     base_path_logs: str = "data/logs_v1_may",
+    output_dir: str = "output_trajectory_plot",
     frame_rate: float = 240,
     W_start: float = 170.0,
     W_end: float = 185.0,
@@ -512,11 +513,19 @@ def plot_trajectories_downbeat_window(
     ax.set_ylabel("Foot Y Position")
     ax.set_title(
         f"Foot Trajectories ±{2*nn/n_subdiv_per_beat/ n_beats_per_cycle:.1f} beats around downbeats\n"
-        f"{file_name} | window {W_start}-{W_end}s | {mode}",
+        f"{file_name} | window {W_start}-{W_end}s | {mode} | {W_start:.1f} - {W_end:.1f}",
         fontsize=10
     )
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
+    
+    #save figure
+    save_dir = os.path.join(output_dir, "downbeat_plots", file_name)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{file_name}_{W_start:.1f}_{W_end:.1f}_downbeat.png")
+    fig.savefig(save_path, bbox_inches='tight', dpi=dpi)
+    plt.close(fig)
+    
 
     return fig, ax
 
@@ -1464,7 +1473,7 @@ def plot_rel_hand_norms_trajectories(
     #     rel_acc = np.abs(L_acc - R_acc)
     
     # Load joint position data for both wrists
-    dir_csv = "extracted_mocap_csv"
+    dir_csv = "bvh_to_csv"
     base_name = os.path.splitext(os.path.basename(file_name))[0]
     worldpos_file = os.path.join(dir_csv, f"{base_name}_T_worldpos.csv")
     
